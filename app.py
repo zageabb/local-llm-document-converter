@@ -9,6 +9,7 @@ from flask import Flask, flash, render_template, request
 
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
 OLLAMA_TIMEOUT = int(os.environ.get("OLLAMA_TIMEOUT", "300"))
+OLLAMA_NUM_PREDICT = int(os.environ.get("OLLAMA_NUM_PREDICT", "2048"))
 MAX_UPLOAD_BYTES = int(os.environ.get("MAX_UPLOAD_BYTES", str(5 * 1024 * 1024)))
 
 app = Flask(__name__)
@@ -135,15 +136,30 @@ def generate_conversion(model, prompt):
     payload = {
         "model": model,
         "prompt": prompt,
-        "stream": False,
+        "stream": True,
+        "keep_alive": "10m",
         "options": {
+            "num_predict": OLLAMA_NUM_PREDICT,
             "temperature": 0.1,
         },
     }
-    response = requests.post(f"{OLLAMA_BASE_URL}/api/generate", json=payload, timeout=OLLAMA_TIMEOUT)
-    response.raise_for_status()
-    data = response.json()
-    return data.get("response", "").strip()
+    chunks = []
+    with requests.post(
+        f"{OLLAMA_BASE_URL}/api/generate",
+        json=payload,
+        stream=True,
+        timeout=(10, OLLAMA_TIMEOUT),
+    ) as response:
+        response.raise_for_status()
+        for line in response.iter_lines(decode_unicode=True):
+            if not line:
+                continue
+            data = json.loads(line)
+            if data.get("response"):
+                chunks.append(data["response"])
+            if data.get("done"):
+                break
+    return "".join(chunks).strip()
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -196,6 +212,7 @@ def index():
         custom_instruction=custom_instruction,
         models=models,
         ollama_base_url=OLLAMA_BASE_URL,
+        ollama_num_predict=OLLAMA_NUM_PREDICT,
         ollama_timeout=OLLAMA_TIMEOUT,
         result=result,
         selected_model=selected_model,
