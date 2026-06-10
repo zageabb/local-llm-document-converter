@@ -29,7 +29,14 @@ Open `http://127.0.0.1:5000`.
 
 - `OLLAMA_BASE_URL`: defaults to `http://localhost:11434`
 - `OLLAMA_TIMEOUT`: defaults to `300` seconds
+- `OLLAMA_NUM_PREDICT`: defaults to `2048` output tokens
 - `FLASK_PORT`: defaults to `5000`
 - `MAX_UPLOAD_BYTES`: defaults to `5242880`
 
 The app reads available models from Ollama's `/api/tags` endpoint and sends conversion prompts to `/api/generate`.
+
+If Ollama times out on generation, try a smaller/faster model, a smaller document, or a longer timeout:
+
+```bash
+OLLAMA_TIMEOUT=900 OLLAMA_NUM_PREDICT=1024 python app.py
+```
