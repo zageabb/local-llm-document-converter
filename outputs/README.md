@@ -15,4 +15,4 @@ python app.py
 
 Then open `http://127.0.0.1:5000`.
 
-Set `OLLAMA_TIMEOUT=600` before running if your local model needs a longer first-load window.
+Set `OLLAMA_TIMEOUT=900` before running if your local model needs a longer first-load window. Use `OLLAMA_NUM_PREDICT=1024` to limit long outputs.
