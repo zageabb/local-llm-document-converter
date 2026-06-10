@@ -30,6 +30,7 @@ Open `http://127.0.0.1:5000`.
 - `OLLAMA_BASE_URL`: defaults to `http://localhost:11434`
 - `OLLAMA_TIMEOUT`: defaults to `900` seconds
 - `OLLAMA_NUM_PREDICT`: defaults to `1024` output tokens
+- `MAX_SOURCE_CHARS`: defaults to `20000` input characters
 - `FLASK_PORT`: defaults to `5000`
 - `MAX_UPLOAD_BYTES`: defaults to `5242880`
 
