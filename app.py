@@ -10,6 +10,7 @@ from flask import Flask, flash, render_template, request
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
 OLLAMA_TIMEOUT = int(os.environ.get("OLLAMA_TIMEOUT", "900"))
 OLLAMA_NUM_PREDICT = int(os.environ.get("OLLAMA_NUM_PREDICT", "1024"))
+MAX_SOURCE_CHARS = int(os.environ.get("MAX_SOURCE_CHARS", "20000"))
 MAX_UPLOAD_BYTES = int(os.environ.get("MAX_UPLOAD_BYTES", str(5 * 1024 * 1024)))
 
 app = Flask(__name__)
@@ -150,16 +151,31 @@ def generate_conversion(model, prompt):
         stream=True,
         timeout=(10, OLLAMA_TIMEOUT),
     ) as response:
-        response.raise_for_status()
+        if response.status_code >= 400:
+            raise RuntimeError(format_ollama_error(response))
         for line in response.iter_lines(decode_unicode=True):
             if not line:
                 continue
             data = json.loads(line)
+            if data.get("error"):
+                raise RuntimeError(data["error"])
             if data.get("response"):
                 chunks.append(data["response"])
             if data.get("done"):
                 break
     return "".join(chunks).strip()
+
+
+def format_ollama_error(response):
+    message = response.text.strip()
+    try:
+        payload = response.json()
+        message = payload.get("error") or message
+    except ValueError:
+        pass
+    if not message:
+        message = response.reason or "Unknown Ollama error"
+    return f"Ollama returned HTTP {response.status_code}: {message}"
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -193,10 +209,18 @@ def index():
             flash("Choose a model from the Ollama server.", "error")
         elif not source_text:
             flash("Paste text or upload a document to convert.", "error")
+        elif len(source_text) > MAX_SOURCE_CHARS:
+            flash(
+                f"Document is too large for one conversion ({len(source_text):,} characters). "
+                f"Use a smaller file or set MAX_SOURCE_CHARS higher than {MAX_SOURCE_CHARS:,}.",
+                "error",
+            )
         else:
             try:
                 prompt = build_prompt(source_text, conversion_type, custom_instruction)
                 result = generate_conversion(selected_model, prompt)
+            except RuntimeError as exc:
+                flash(f"Ollama generation failed: {exc}", "error")
             except requests.RequestException as exc:
                 flash(f"Ollama generation failed: {exc}", "error")
             except json.JSONDecodeError:
@@ -214,6 +238,7 @@ def index():
         ollama_base_url=OLLAMA_BASE_URL,
         ollama_num_predict=OLLAMA_NUM_PREDICT,
         ollama_timeout=OLLAMA_TIMEOUT,
+        max_source_chars=MAX_SOURCE_CHARS,
         result=result,
         selected_model=selected_model,
         source_text=source_text,
