@@ -8,8 +8,8 @@ from flask import Flask, flash, render_template, request
 
 
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
-OLLAMA_TIMEOUT = int(os.environ.get("OLLAMA_TIMEOUT", "300"))
-OLLAMA_NUM_PREDICT = int(os.environ.get("OLLAMA_NUM_PREDICT", "2048"))
+OLLAMA_TIMEOUT = int(os.environ.get("OLLAMA_TIMEOUT", "900"))
+OLLAMA_NUM_PREDICT = int(os.environ.get("OLLAMA_NUM_PREDICT", "1024"))
 MAX_UPLOAD_BYTES = int(os.environ.get("MAX_UPLOAD_BYTES", str(5 * 1024 * 1024)))
 
 app = Flask(__name__)
