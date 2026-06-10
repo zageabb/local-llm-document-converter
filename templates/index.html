@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Local LLM Document Converter</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <h1>Document Converter</h1>
+          <p>Ollama endpoint: <code>{{ ollama_base_url }}</code> · timeout: <code>{{ ollama_timeout }}s</code></p>
+        </div>
+      </header>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <section class="messages" aria-live="polite">
+            {% for category, message in messages %}
+              <p class="message {{ category }}">{{ message }}</p>
+            {% endfor %}
+          </section>
+        {% endif %}
+      {% endwith %}
+
+      <form class="workspace" method="post" enctype="multipart/form-data">
+        <section class="panel controls">
+          <label>
+            Model
+            <select name="model" required>
+              {% if models %}
+                {% for model in models %}
+                  <option value="{{ model }}" {% if model == selected_model %}selected{% endif %}>{{ model }}</option>
+                {% endfor %}
+              {% else %}
+                <option value="">No Ollama models found</option>
+              {% endif %}
+            </select>
+          </label>
+
+          <label>
+            Conversion
+            <select name="conversion_type">
+              {% for key, label in conversion_presets.items() %}
+                <option value="{{ key }}" {% if key == conversion_type %}selected{% endif %}>{{ key|capitalize }}</option>
+              {% endfor %}
+            </select>
+          </label>
+
+          <label>
+            Upload document
+            <input type="file" name="document" accept=".txt,.md,.markdown,.csv,.json,.html,.htm,.xml,.log,.pdf,.docx,.xlsx">
+          </label>
+
+          <label>
+            Custom instruction
+            <textarea name="custom_instruction" rows="5" placeholder="Optional: Convert this contract into a JSON object with parties, dates, obligations, and risks.">{{ custom_instruction }}</textarea>
+          </label>
+
+          <button type="submit" {% if not models %}disabled{% endif %}>Convert</button>
+        </section>
+
+        <section class="panel editor">
+          <label>
+            Source text
+            <textarea name="source_text" rows="22" placeholder="Paste document text here, or upload a file.">{{ source_text }}</textarea>
+          </label>
+        </section>
+
+        <section class="panel output">
+          <label>
+            Converted output
+            <textarea rows="22" readonly placeholder="The converted document will appear here.">{{ result }}</textarea>
+          </label>
+        </section>
+      </form>
+    </main>
+  </body>
+</html>
